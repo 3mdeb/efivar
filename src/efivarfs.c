@@ -37,7 +37,7 @@ get_efivarfs_path(void)
 	if (efivarfs_path)
 		return efivarfs_path;
 
-	efivarfs_path = secure_getenv("EFIVARFS_PATH");
+	efivarfs_path = getenv("EFIVARFS_PATH");
 	if (efivarfs_path)
 		efivarfs_path = strdup(efivarfs_path);
 	else
