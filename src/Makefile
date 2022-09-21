@@ -5,6 +5,8 @@ include $(TOPDIR)/src/include/version.mk
 include $(TOPDIR)/src/include/rules.mk
 include $(TOPDIR)/src/include/defaults.mk
 
+LIB_DL=$(shell echo 'int main() { return 0; }' | $(CC) -x c -o /dev/null - -ldl 2>/dev/null && echo dl)
+
 LIBTARGETS=libefivar.so libefiboot.so libefisec.so
 STATICLIBTARGETS=libefivar.a libefiboot.a libefisec.a
 BINTARGETS=efivar efisecdb thread-test
@@ -62,7 +64,7 @@ abidw : $(patsubst %.so,%.abixml,$(LIBTARGETS))
 abicheck : $(patsubst %.so,%.abicheck,$(LIBTARGETS))
 
 makeguids : CPPFLAGS=$(HOST_CPPFLAGS)
-makeguids : LIBS=dl
+makeguids : LIBS=$(LIB_DL)
 makeguids : CC=$(HOSTCC)
 makeguids : CCLD=$(HOSTCCLD)
 makeguids : CFLAGS=$(HOST_CFLAGS)
@@ -94,15 +96,15 @@ libefivar.a : $(patsubst %.o,%.static.o,$(LIBEFIVAR_OBJECTS))
 
 libefivar.so : $(LIBEFIVAR_OBJECTS)
 libefivar.so : | $(GENERATED_SOURCES) libefivar.map
-libefivar.so : private LIBS=dl
+libefivar.so : private LIBS=$(LIB_DL)
 libefivar.so : private MAP=libefivar.map
 
 efivar : $(EFIVAR_OBJECTS) | libefivar.so
-efivar : private LIBS=efivar dl
+efivar : private LIBS=efivar $(LIB_DL)
 
 efivar-static : $(EFIVAR_OBJECTS) $(patsubst %.o,%.static.o,$(LIBEFIVAR_OBJECTS))
 efivar-static : | $(GENERATED_SOURCES)
-efivar-static : private LIBS=dl
+efivar-static : private LIBS=$(LIB_DL)
 
 libefiboot.a : $(patsubst %.o,%.static.o,$(LIBEFIBOOT_OBJECTS))
 
@@ -118,12 +120,12 @@ libefisec.so : | libefisec.map
 libefisec.so : private MAP=libefisec.map
 
 efisecdb : $(EFISECDB_OBJECTS) | libefisec.so
-efisecdb : private LIBS=efivar efisec dl
+efisecdb : private LIBS=efivar efisec $(LIB_DL)
 
 efisecdb-static : $(EFISECDB_OBJECTS)
 efisecdb-static : $(patsubst %.o,%.static.o,$(LIBEFISEC_OBJECTS) $(LIBEFIVAR_OBJECTS))
 efisecdb-static : | $(GENERATED_SOURCES)
-efisecdb-static : private LIBS=dl
+efisecdb-static : private LIBS=$(LIB_DL)
 
 thread-test : libefivar.so
 # make sure we don't propagate CFLAGS to object files used by 'libefivar.so'
