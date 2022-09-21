@@ -58,7 +58,9 @@ read_guids_at(const int dirfd, const char * const path,
 
 	if ((dirfd < 0 && !(dirfd & AT_FDCWD))
 	    || path == NULL
+#ifdef AT_EMPTY_PATH
 	    || (path[0] == '\0' && !(dirfd & AT_EMPTY_PATH))
+#endif
 	    || guidnamesp == NULL) {
 		errno = EINVAL;
 		return -1;
