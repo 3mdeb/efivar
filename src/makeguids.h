@@ -36,7 +36,7 @@ struct guidname_index {
 };
 
 static int
-gnopguidcmp(const void *p1, const void *p2, void *ctxp UNUSED)
+gnopguidcmp(const void *p1, const void *p2)
 {
 	struct guidname_offset *gno1 = (struct guidname_offset *)p1;
 	struct guidname_offset *gno2 = (struct guidname_offset *)p2;
@@ -261,8 +261,8 @@ read_guids_at(const int dirfd, const char * const path,
 	guidnames->nguids = nguids;
 	guidnames->strsz = spos;
 
-	qsort_r(&guidnames->offsets[0], nguids,
-		sizeof(struct guidname_offset), gnopguidcmp, guidnames);
+	qsort(&guidnames->offsets[0], nguids,
+		sizeof(struct guidname_offset), gnopguidcmp);
 
 	*guidnamesp = guidnames;
 
