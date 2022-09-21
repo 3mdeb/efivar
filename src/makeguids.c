@@ -313,7 +313,7 @@ struct efivar_guidname {\n\
 	fprintf(ldsout,
 		"SECTIONS\n"
 		"{\n"
-		"  .data :\n"
+		"  .data.efivar :\n"
 		"  {\n"
 		"    efi_well_known_guids = efi_well_known_guids_;\n"
 		"    efi_well_known_guids_end = efi_well_known_guids_ + %zd;\n"
