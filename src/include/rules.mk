@@ -39,7 +39,8 @@ family = $(foreach FAMILY_SUFFIX,$(FAMILY_SUFFIXES),$($(1)_$(FAMILY_SUFFIX)))
 	$(CCLD) $(CCLDFLAGS) $(CPPFLAGS) $(SOFLAGS) \
 		$(foreach LDS,$(LDSCRIPTS),$(LD_DASH_T) $(LDS)) \
 		-o $@ $^ $(LDLIBS)
-	ln -vfs $@ $@.1
+	ln -fs $@ $@.1
+	@echo $@.1 '->' $@
 
 %.abixml : %.so
 	$(ABIDW) --headers-dir $(TOPDIR)/src/include/efivar/ --out-file $@ $^
