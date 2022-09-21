@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <mntent.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <stdlib.h>
@@ -19,6 +18,7 @@
 #include <sys/socket.h>
 
 #include "efiboot.h"
+#include "mntent_compat.h"
 
 static int NONNULL(1, 2, 3)
 find_file(const char * const filepath, char **devicep, char **relpathp)
@@ -119,8 +119,9 @@ find_file(const char * const filepath, char **devicep, char **relpathp)
 		}
 	}
 err:
-	if (mounts)
-		endmntent(mounts);
+	if (mounts) {
+		(void)endmntent(mounts);
+	}
 	return ret;
 }
 
