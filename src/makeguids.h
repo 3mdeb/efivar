@@ -188,13 +188,17 @@ read_guids_at(const int dirfd, const char * const path,
 		strncpy(guidstr, &buf[bpos], 37);
 		guidstr[36] = '\0';
 
-		char *desc = strchrnul(symbol, '\t');
+		char *desc = strchr(symbol, '\t');
+		if (desc == NULL)
+			desc = symbol + strlen(symbol);
 		if (*desc != '\0') {
 			*desc = '\0';
 			desc += 1;
 		}
 
-		char *end = strchrnul(desc, '\n');
+		char *end = strchr(desc, '\n');
+		if (end == NULL)
+			end = desc + strlen(desc);
 		*end = '\0';
 
 		efi_guid_t guid;
