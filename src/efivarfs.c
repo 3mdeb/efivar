@@ -6,6 +6,8 @@
 
 #include "fix_coverity.h"
 
+#ifdef __linux__
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -523,5 +525,30 @@ struct efi_var_operations efivarfs_ops = {
 	.get_next_variable_name = efivarfs_get_next_variable_name,
 	.chmod_variable = efivarfs_chmod_variable,
 };
+
+#else
+
+#include "lib.h"
+
+static int
+efivarfs_probe(void)
+{
+	return 0;
+}
+
+struct efi_var_operations efivarfs_ops = {
+	.name = "efivarfs",
+	.probe = efivarfs_probe,
+	.set_variable = NULL,
+	.append_variable = NULL,
+	.del_variable = NULL,
+	.get_variable = NULL,
+	.get_variable_attributes = NULL,
+	.get_variable_size = NULL,
+	.get_next_variable_name = NULL,
+	.chmod_variable = NULL,
+};
+
+#endif /* __linux__ */
 
 // vim:fenc=utf-8:tw=75:noet
