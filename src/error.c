@@ -13,10 +13,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/param.h>
-#include <sys/random.h>
 #include <unistd.h>
 
 #include "efiboot.h"
+
+#if !defined(ANDROID)
+#  define HAVE_GLIBC
+#endif
+
+#ifdef HAVE_GLIBC
+#  include <sys/random.h>
+#endif
 
 typedef struct {
 	int error;
@@ -141,7 +148,7 @@ efi_error_pop(void)
 
 static int efi_verbose;
 static FILE *efi_errlog, *efi_dbglog;
-#ifndef ANDROID
+#ifdef HAVE_GLIBC
 static int efi_dbglog_fd = -1;
 static intptr_t efi_dbglog_cookie;
 #endif
@@ -153,7 +160,7 @@ efi_set_loglevel(int level)
 	log_level = level;
 }
 
-#ifndef ANDROID
+#ifdef HAVE_GLIBC
 static ssize_t
 dbglog_write(void *cookie, const char *buf, size_t size)
 {
@@ -249,7 +256,7 @@ efi_error_fini(void)
 static void CONSTRUCTOR
 efi_error_init(void)
 {
-#ifndef ANDROID
+#ifdef HAVE_GLIBC
 	ssize_t bytes;
 	cookie_io_functions_t io_funcs = {
 		.write = dbglog_write,
