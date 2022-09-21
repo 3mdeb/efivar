@@ -8,7 +8,6 @@
 #ifndef EFIVAR_UTIL_H
 #define EFIVAR_UTIL_H 1
 
-#include <alloca.h>
 #include <ctype.h>
 #include <endian.h>
 #include <err.h>
