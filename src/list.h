@@ -26,7 +26,7 @@ typedef struct list_head list_t;
 		.next = &(name), .prev = &(name) \
 	}
 
-#define LIST_HEAD(name) struct list_head name = LIST_HEAD_INIT(name)
+#define DEF_LIST_HEAD(name) struct list_head name = LIST_HEAD_INIT(name)
 
 #define INIT_LIST_HEAD(ptr)          \
 	({                           \
