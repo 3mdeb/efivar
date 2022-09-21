@@ -45,7 +45,7 @@ override CFLAGS = $(_CFLAGS) \
 		  -fvisibility=hidden \
 		  $(call family,CFLAGS) \
 		  $(call pkg-config-cflags)
-LDFLAGS_CLANG ?= -rtlib=compiler-rt
+LDFLAGS_CLANG ?=
 CCLDFLAGS ?=
 LDFLAGS ?=
 override _CCLDFLAGS := $(CCLDFLAGS)
@@ -89,7 +89,7 @@ HOST_CFLAGS_CLANG ?=
 HOST_CFLAGS ?= $(CFLAGS) $(call family,HOST_CFLAGS)
 override _HOST_CFLAGS := $(HOST_CFLAGS)
 override HOST_CFLAGS = $(_HOST_CFLAGS)
-HOST_LDFLAGS_CLANG ?= -Wl,--fatal-warnings,-z,relro -rtlib=compiler-rt
+HOST_LDFLAGS_CLANG ?= -Wl,--fatal-warnings,-z,relro
 HOST_LDFLAGS_GCC ?= -Wl,--no-undefined-version
 HOST_LDFLAGS ?=
 HOST_CCLDFLAGS ?=
