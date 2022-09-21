@@ -6,7 +6,6 @@
 #ifndef _EFIVAR_INTERNAL_DP_H
 #define _EFIVAR_INTERNAL_DP_H
 
-#include <alloca.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

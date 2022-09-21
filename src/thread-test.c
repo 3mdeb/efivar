@@ -6,7 +6,6 @@
 
 #include "fix_coverity.h"
 
-#include <alloca.h>
 #include <efivar.h>
 #include <err.h>
 #include <errno.h>
