@@ -91,7 +91,7 @@ list_all_variables(void)
 		 printf(GUID_FORMAT "-%s\n", GUID_FORMAT_ARGS(guid), name);
 
 	if (rc < 0) {
-		fprintf(stderr, "efivar: error listing variables: %m\n");
+		fprintf(stderr, "efivar: error listing variables: %s\n", strerror(errno));
 		show_errors();
 		exit(1);
 	}
@@ -152,7 +152,7 @@ bad_name:
 	name_len = strlen(guid_name + name_pos) + 1;
 	name_buf = calloc(1, name_len);
 	if (!name_buf) {
-		fprintf(stderr, "efivar: %m\n");
+		fprintf(stderr, "efivar: %s\n", strerror(errno));
 		exit(1);
 	}
 	strcpy(name_buf, guid_name + name_pos);
@@ -243,7 +243,7 @@ show_variable(char *guid_name, int display_type)
 	errno = 0;
 	rc = efi_get_variable(guid, name, &data, &data_size, &attributes);
 	if (rc < 0) {
-		fprintf(stderr, "efivar: show variable: %m\n");
+		fprintf(stderr, "efivar: show variable: %s\n", strerror(errno));
 		show_errors();
 		exit(1);
 	}
@@ -311,7 +311,7 @@ save_variable(char *guid_name, char *outfile, bool dmpstore)
 	errno = 0;
 	rc = efi_get_variable(guid, name, &data, &data_size, &attributes);
 	if (rc < 0) {
-		fprintf(stderr, "efivar: show variable: %m\n");
+		fprintf(stderr, "efivar: show variable: %s\n", strerror(errno));
 		show_errors();
 		exit(1);
 	}
@@ -358,7 +358,7 @@ edit_variable(const char *guid_name, void *data, size_t data_size,
 	rc = efi_get_variable(guid, name, &old_data, &old_data_size,
 			      &old_attributes);
 	if (rc < 0 && edit_type != EDIT_WRITE) {
-		fprintf(stderr, "efivar: %m\n");
+		fprintf(stderr, "efivar: %s\n", strerror(errno));
 		show_errors();
 		exit(1);
 	}
@@ -384,7 +384,7 @@ edit_variable(const char *guid_name, void *data, size_t data_size,
 		free(old_data);
 
 	if (rc < 0) {
-		fprintf(stderr, "efivar: %m\n");
+		fprintf(stderr, "efivar: %s\n", strerror(errno));
 		show_errors();
 		exit(1);
 	}
@@ -426,7 +426,7 @@ prepare_data(const char *filename, uint8_t **data, size_t *data_size)
 err:
 	if (fd >= 0)
 		close(fd);
-	fprintf(stderr, "Could not use \"%s\": %m\n", filename);
+	fprintf(stderr, "Could not use \"%s\": %s\n", filename, strerror(errno));
 	exit(1);
 }
 
