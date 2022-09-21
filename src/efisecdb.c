@@ -114,7 +114,7 @@ secdb_err(int status, const char * const fmt, ...)
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 	errno = errnum;
-	fprintf(stderr, ": %m\n");
+	fprintf(stderr, ": %s\n", strerror(errno));
 	show_errors();
 	exit(status);
 }

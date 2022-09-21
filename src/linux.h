@@ -277,7 +277,8 @@ extern ssize_t HIDDEN make_mac_path(uint8_t *buf, ssize_t size,
 					   + try_ * strlen("/device"));		\
 			if (!slashdev_) {					\
 				rc_ = -1;					\
-				efi_error("cannot allocate memory: %m");	\
+				efi_error("cannot allocate memory: %s",		\
+					  strerror(errno));			\
 				goto find_device_link_err_;			\
 			}							\
 										\
@@ -294,8 +295,8 @@ extern ssize_t HIDDEN make_mac_path(uint8_t *buf, ssize_t size,
 					efi_error_pop();			\
 					break;					\
 				}						\
-				efi_error("cannot access /sys/"fmt"/%s: %m",	\
-					  ## args, slashdev_);			\
+				efi_error("cannot access /sys/"fmt"/%s: %s",	\
+					  ## args, slashdev_, strerror(errno));	\
 				goto find_device_link_err_;			\
 			}							\
 										\
@@ -306,15 +307,17 @@ extern ssize_t HIDDEN make_mac_path(uint8_t *buf, ssize_t size,
 					efi_error_pop();			\
 					break;					\
 				}						\
-				efi_error("cannot access /sys/"fmt"/%s/%s: %m",	\
-					  ## args, slashdev_, name);		\
+				efi_error("cannot access /sys/"fmt"/%s/%s: %s",	\
+					  ## args, slashdev_, name,		\
+					  strerror(errno));			\
 				goto find_device_link_err_;			\
 			}							\
 										\
 			rc_ = asprintfa(result, fmt "/%s/%s",			\
 					## args, slashdev_, name);		\
 			if (rc_ < 0) {						\
-				efi_error("cannot allocate memory: %m");	\
+				efi_error("cannot allocate memory: %s",		\
+					  strerror(errno));			\
 				goto find_device_link_err_;			\
 			}							\
 		}								\

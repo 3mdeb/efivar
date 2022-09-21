@@ -115,7 +115,8 @@ int do_test(struct test *test)
 			      EFI_VARIABLE_RUNTIME_ACCESS |
 			      EFI_VARIABLE_NON_VOLATILE, 0600);
 	if (rc < 0) {
-		report_error(test, ret, rc, "set test failed: %m\n");
+		report_error(test, ret, rc, "set test failed: %s\n",
+			     strerror(errno));
 	}
 
 	size_t datasize = 0;
@@ -124,12 +125,14 @@ int do_test(struct test *test)
 	printf("testing efi_get_variable_size()\n");
 	rc = efi_get_variable_size(TEST_GUID, test->name, &datasize);
 	if (rc < 0)
-		report_error(test, ret, rc, "get size test failed: %m\n");
+		report_error(test, ret, rc, "get size test failed: %s\n",
+			     strerror(errno));
 
 	printf("testing efi_get_variable_exists()\n");
 	rc = efi_get_variable_exists(TEST_GUID, test->name);
 	if (rc < 0)
-		report_error(test, ret, rc, "get exists test failed: %m\n");
+		report_error(test, ret, rc, "get exists test failed: %s\n",
+			     strerror(errno));
 
 	if (datasize != test->size)
 		report_error(test, ret, -1, "get size test failed: wrong size: %zd should be %zd\n", datasize, test->size);
@@ -138,7 +141,8 @@ int do_test(struct test *test)
 	rc = efi_get_variable(TEST_GUID, test->name, &data, &datasize,
 			      &attributes);
 	if (rc < 0)
-		report_error(test, ret, rc, "get test failed: %m\n");
+		report_error(test, ret, rc, "get test failed: %s\n",
+			     strerror(errno));
 
 	if (datasize != test->size)
 		report_error(test, ret, -1, "get size test failed: wrong size: %zd should be %zd\n", datasize, test->size);
@@ -159,7 +163,8 @@ int do_test(struct test *test)
 	printf("testing efi_get_variable_attributes()\n");
 	rc = efi_get_variable_attributes(TEST_GUID, test->name, &attributes);
 	if (rc < 0)
-		report_error(test, ret, rc, "get attributes test failed: %m\n");
+		report_error(test, ret, rc, "get attributes test failed: %s\n",
+			     strerror(errno));
 
 	if (attributes != (EFI_VARIABLE_BOOTSERVICE_ACCESS |
 			   EFI_VARIABLE_RUNTIME_ACCESS |
@@ -169,7 +174,8 @@ int do_test(struct test *test)
 	printf("testing efi_del_variable()\n");
 	rc = efi_del_variable(TEST_GUID, test->name);
 	if (rc < 0)
-		report_error(test, ret, rc, "del test failed: %m\n");
+		report_error(test, ret, rc, "del test failed: %s\n",
+			     strerror(errno));
 
 	rc = efi_set_variable(TEST_GUID, test->name,
 			      testdata, test->size,
@@ -178,7 +184,8 @@ int do_test(struct test *test)
 			      EFI_VARIABLE_NON_VOLATILE,
 			      0600);
 	if (rc < 0) {
-		report_error(test, ret, rc, "set test failed: %m\n");
+		report_error(test, ret, rc, "set test failed: %s\n",
+			     strerror(errno));
 	}
 
 	printf("testing efi_append_variable()\n");
@@ -189,14 +196,16 @@ int do_test(struct test *test)
 				EFI_VARIABLE_RUNTIME_ACCESS |
 				EFI_VARIABLE_NON_VOLATILE);
 	if (rc < 0) {
-		report_error(test, ret, rc, "append test failed: %m\n");
+		report_error(test, ret, rc, "append test failed: %s\n",
+			     strerror(errno));
 	}
 
 	printf("testing efi_get_variable()\n");
 	rc = efi_get_variable(TEST_GUID, test->name, &data, &datasize,
 			      &attributes);
 	if (rc < 0)
-		report_error(test, ret, rc, "get test failed: %m\n");
+		report_error(test, ret, rc, "get test failed: %s\n",
+			     strerror(errno));
 
 	if (datasize != test->size * 2)
 		report_error(test, ret, -1, "get size test failed: wrong size: %zd should be %zd (append may be at fault)\n", datasize, test->size * 2);
@@ -209,7 +218,8 @@ int do_test(struct test *test)
 	printf("testing efi_del_variable()\n");
 	rc = efi_del_variable(TEST_GUID, test->name);
 	if (rc < 0 && test->size != 0)
-		report_error(test, ret, rc, "del test failed: %m\n");
+		report_error(test, ret, rc, "del test failed: %s\n",
+			     strerror(errno));
 	else
 		ret = test->result;
 
