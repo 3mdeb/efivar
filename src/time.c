@@ -65,7 +65,7 @@ static const char *
 newtz(int16_t timezone_)
 {
 	if (!otz_)
-		otz_ = strdup(secure_getenv("TZ"));
+		otz_ = strdup(getenv("TZ"));
 
 	if (ntz_) {
 		free(ntz_);
