@@ -17,7 +17,7 @@
 
 #include "efiboot.h"
 
-#if !defined(ANDROID)
+#if defined(__linux__) && !defined(ANDROID)
 #  define HAVE_GLIBC
 #endif
 
