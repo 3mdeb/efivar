@@ -34,6 +34,8 @@ typedef struct list_head list_t;
 		(ptr)->prev = (ptr); \
 	})
 
+static void *list_sort_state;
+
 static inline int __attribute__((__unused__))
 list_empty(const struct list_head *head)
 {
@@ -121,7 +123,7 @@ list_size(struct list_head *entry)
  */
 static inline int __attribute__((__unused__))
 list_sort(struct list_head *head,
-	  int (*cmp)(const void *a, const void *b, void *state),
+	  int (*cmp)(const void *a, const void *b),
 	  void *state)
 {
 	struct list_head **array = NULL, *pos;
@@ -149,7 +151,8 @@ list_sort(struct list_head *head,
 		array[i++] = pos;
 	}
 
-	qsort_r(array, nmemb, sizeof(*array), cmp, state);
+	list_sort_state = state;
+	qsort(array, nmemb, sizeof(*array), cmp);
 
 	INIT_LIST_HEAD(head);
 	for (i = 0; i < nmemb; i++) {

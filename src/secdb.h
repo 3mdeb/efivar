@@ -210,14 +210,14 @@ secdb_size(efi_secdb_t *secdb)
 /*
  * compare secdb_entry_t items
  */
-extern int secdb_entry_cmp(const void *a, const void *b, void *state);
-extern int secdb_entry_cmp_descending(const void *a, const void *b, void *state);
+extern int secdb_entry_cmp(const void *a, const void *b);
+extern int secdb_entry_cmp_descending(const void *a, const void *b);
 
 /*
  * compare efi_secdb_t items;
  */
-extern int secdb_cmp(const void *a, const void *b, void *state);
-extern int secdb_cmp_descending(const void *a, const void *b, void *state);
+extern int secdb_cmp(const void *a, const void *b);
+extern int secdb_cmp_descending(const void *a, const void *b);
 
 /*
  * hexdump with annotations

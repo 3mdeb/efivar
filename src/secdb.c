@@ -228,7 +228,7 @@ efi_secdb_add_entry_or_secdb(efi_secdb_t *top,
 	bool sort = false;
 	bool sort_data = false;
 	bool sort_descending = false;
-	int (*cmp)(const void *, const void *, void *);
+	int (*cmp)(const void *, const void *);
 
 	if (!top) {
 		errno = EINVAL;
@@ -681,11 +681,11 @@ bytecmp(const void *ap, const void *bp, size_t sz)
  * compare secdb_entry_t items
  */
 int
-secdb_entry_cmp(const void *ap, const void *bp, void *state)
+secdb_entry_cmp(const void *ap, const void *bp)
 {
 	const secdb_entry_t *a = *(const secdb_entry_t **)ap;
 	const secdb_entry_t *b = *(const secdb_entry_t **)bp;
-	size_t sigsz = *(size_t *)state;
+	size_t sigsz = *(size_t *)list_sort_state;
 	int rc;
 
 	rc = efi_guid_cmp(&a->owner, &b->owner);
@@ -701,16 +701,16 @@ secdb_entry_cmp(const void *ap, const void *bp, void *state)
 }
 
 int
-secdb_entry_cmp_descending(const void *ap, const void *bp, void *state)
+secdb_entry_cmp_descending(const void *ap, const void *bp)
 {
-	return secdb_entry_cmp(bp, ap, state);
+	return secdb_entry_cmp(bp, ap);
 }
 
 /*
  * compare efi_secdb_t items
  */
 int
-secdb_cmp(const void *ap, const void *bp, void * state UNUSED)
+secdb_cmp(const void *ap, const void *bp)
 {
 	const efi_secdb_t *a;
 	const efi_secdb_t *b;
@@ -743,9 +743,9 @@ secdb_cmp(const void *ap, const void *bp, void * state UNUSED)
 }
 
 int
-secdb_cmp_descending(const void *ap, const void *bp, void * state)
+secdb_cmp_descending(const void *ap, const void *bp)
 {
-	return secdb_cmp(bp, ap, state);
+	return secdb_cmp(bp, ap);
 }
 
 const secdb_alg_t PUBLIC efi_secdb_algs_[MAX_SECDB_TYPE] = {
