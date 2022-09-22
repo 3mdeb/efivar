@@ -46,6 +46,7 @@ typedef unsigned long efi_status_t;
 
 extern struct efi_var_operations vars_ops;
 extern struct efi_var_operations efivarfs_ops;
+extern struct efi_var_operations ioctl_ops;
 
 #endif /* LIBEFIVAR_LIB_H */
 

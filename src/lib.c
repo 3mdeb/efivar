@@ -235,6 +235,7 @@ libefivar_init(void)
 	struct efi_var_operations *ops_list[] = {
 		&efivarfs_ops,
 		&vars_ops,
+		&ioctl_ops,
 		&default_ops,
 		NULL
 	};
