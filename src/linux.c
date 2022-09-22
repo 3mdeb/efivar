@@ -12,21 +12,24 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <linux/ethtool.h>
-#include <linux/version.h>
-#include <linux/sockios.h>
 #include <net/if.h>
-#include <scsi/scsi.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
 #include <sys/socket.h>
-#include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#ifdef __linux__
+#include <linux/ethtool.h>
+#include <linux/version.h>
+#include <linux/sockios.h>
+#include <scsi/scsi.h>
+#include <sys/sysmacros.h>
+#endif
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/diskslice.h>
@@ -637,6 +640,7 @@ make_blockdev_path(uint8_t *buf, ssize_t size, struct device *dev)
 ssize_t HIDDEN
 make_mac_path(uint8_t *buf, ssize_t size, const char * const ifname)
 {
+#ifdef __linux__
 	struct ifreq ifr;
 	struct ethtool_drvinfo drvinfo = { 0, };
 	int fd = -1, rc;
@@ -696,6 +700,13 @@ err:
 	if (fd >= 0)
 	        close(fd);
 	return ret;
+#else
+	(void)buf;
+	(void)size;
+	(void)ifname;
+	efi_error("make_mac_path() is not implemented for this platform");
+	return -1;
+#endif
 }
 
 /************************************************************
