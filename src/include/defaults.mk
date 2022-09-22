@@ -52,7 +52,6 @@ override _CCLDFLAGS := $(CCLDFLAGS)
 override _LDFLAGS := $(LDFLAGS)
 override LDFLAGS = $(CFLAGS) -L. $(_LDFLAGS) $(_CCLDFLAGS) \
 		   -Wl,--build-id \
-		   -Wl,--no-allow-shlib-undefined \
 		   -Wl,--no-undefined-version \
 		   -Wl,-z,now \
 		   -Wl,-z,muldefs \
@@ -98,7 +97,6 @@ override _HOST_CCLDFLAGS := $(HOST_CCLDFLAGS)
 override HOST_LDFLAGS = $(HOST_CFLAGS) -L. \
 			$(_HOST_LDFLAGS) $(_HOST_CCLDFLAGS) \
 			-Wl,--build-id \
-			-Wl,--no-allow-shlib-undefined \
 			-Wl,-z,now \
 			-Wl,-z,muldefs \
 			$(call family,HOST_LDFLAGS) \
