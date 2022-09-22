@@ -111,20 +111,15 @@ kernel_has_blkgetsize64(void)
 static uint64_t
 _get_num_sectors(int filedes)
 {
-	unsigned long sectors=0;
 	uint64_t bytes=0;
 	int rc;
 	if (kernel_has_blkgetsize64()) {
-		rc = ioctl(filedes, BLKGETSIZE64, &bytes);
+		rc = get_disk_size_in_bytes(filedes);
 		if (!rc)
 			return bytes / get_sector_size(filedes);
 	}
 
-	rc = ioctl(filedes, BLKGETSIZE, &sectors);
-	if (rc)
-		return 0;
-
-	return sectors;
+	return get_disk_size_in_sectors(filedes);
 }
 
 /************************************************************

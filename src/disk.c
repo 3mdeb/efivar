@@ -90,7 +90,6 @@ msdos_disk_get_partition_info (int fd, int write_signature,
 			       uint8_t *mbr_type, uint8_t *signature_type)
 {
 	int rc;
-	long disk_size=0;
 	struct stat stat;
 	struct timeval tv;
 
@@ -158,8 +157,7 @@ msdos_disk_get_partition_info (int fd, int write_signature,
 	} else if (num == 0) {
 		/* Whole disk */
 		*start = 0;
-		ioctl(fd, BLKGETSIZE, &disk_size);
-		*size = disk_size;
+		*size = get_disk_size_in_sectors(fd);
 	} else if (num >= 1 && num <= 4) {
 		/* Primary partition */
 		*start = mbr->partition[num-1].starting_lba;
