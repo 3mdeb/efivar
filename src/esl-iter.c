@@ -335,12 +335,14 @@ esl_list_iter_next_with_size_correction(esl_list_iter *iter, efi_guid_t *type,
 			      iter->len - iter->offset, iter->len - iter->offset,
 			      iter->esl->signature_list_size, iter->esl->signature_list_size);
 			if (correct_size && (iter->len - iter->offset) > 0) {
-				warnx("correcting ESL size from %d to %jd at %lx",
+				warnx("correcting ESL size from %d to %jd at %llx",
 				      iter->esl->signature_list_size,
-				      (intmax_t)(iter->len - iter->offset), iter->offset);
-				debug("correcting ESL size from %d to %zd at %lx",
+				      (intmax_t)(iter->len - iter->offset),
+				      (unsigned long long)iter->offset);
+				debug("correcting ESL size from %d to %zd at %llx",
 				      iter->esl->signature_list_size,
-				      iter->len - iter->offset, iter->offset);
+				      iter->len - iter->offset,
+				      (unsigned long long)iter->offset);
 				iter->esl->signature_list_size = iter->len - iter->offset;
 			} else {
 				efi_error("EFI_SIGNATURE_LIST is malformed");
@@ -360,12 +362,14 @@ esl_list_iter_next_with_size_correction(esl_list_iter *iter, efi_guid_t *type,
 		if (iter->len - iter->offset < iter->esl->signature_list_size) {
 			debug("EFI_SIGNATURE_LIST is malformed");
 			if (correct_size && (iter->len - iter->offset) > 0) {
-				warnx("correcting ESL size from %d to %jd at 0x%lx",
+				warnx("correcting ESL size from %d to %jd at 0x%llx",
 				      iter->esl->signature_list_size,
-				      (intmax_t)(iter->len - iter->offset), iter->offset);
-				debug("correcting ESL size from %d to %zd at 0x%lx",
+				      (intmax_t)(iter->len - iter->offset),
+				      (unsigned long long)iter->offset);
+				debug("correcting ESL size from %d to %zd at 0x%llx",
 				      iter->esl->signature_list_size,
-				      iter->len - iter->offset, iter->offset);
+				      iter->len - iter->offset,
+				      (unsigned long long)iter->offset);
 				iter->esl->signature_list_size = iter->len - iter->offset;
 			} else {
 				debug("EFI_SIGNATURE_LIST is malformed");
@@ -411,12 +415,14 @@ esl_list_iter_next_with_size_correction(esl_list_iter *iter, efi_guid_t *type,
 	if (iter->esl->signature_list_size > iter->len - iter->offset) {
 		debug("EFI_SIGNATURE_LIST is malformed");
 		if (correct_size && (iter->len - iter->offset) > 0) {
-			warnx("correcting ESL size from %d to %jd at 0x%lx",
+			warnx("correcting ESL size from %d to %jd at 0x%llx",
 			      iter->esl->signature_list_size,
-			      (intmax_t)(iter->len - iter->offset), iter->offset);
-			debug("correcting ESL size from %d to %zd at 0x%lx",
+			      (intmax_t)(iter->len - iter->offset),
+			      (unsigned long long)iter->offset);
+			debug("correcting ESL size from %d to %zd at 0x%llx",
 			      iter->esl->signature_list_size,
-			      iter->len - iter->offset, iter->offset);
+			      iter->len - iter->offset,
+			      (unsigned long long)iter->offset);
 			iter->esl->signature_list_size = iter->len - iter->offset;
 		} else {
 			efi_error("EFI_SIGNATURE_LIST is malformed");
