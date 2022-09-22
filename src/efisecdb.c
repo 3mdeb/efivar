@@ -22,6 +22,8 @@
 
 #include "efisec.h"
 
+#define PROGRAM_NAME "efisecdb"
+
 extern char *optarg;
 extern int optind, opterr, optopt;
 
@@ -93,7 +95,7 @@ secdb_warnx(const char * const fmt, ...)
 	int errnum = errno;
 
 	fflush(stdout);
-	fprintf(stderr, "%s: ", program_invocation_short_name);
+	fprintf(stderr, "%s: ", PROGRAM_NAME);
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
@@ -109,7 +111,7 @@ secdb_err(int status, const char * const fmt, ...)
 	int errnum = errno;
 
 	fflush(stdout);
-	fprintf(stderr, "%s: ", program_invocation_short_name);
+	fprintf(stderr, "%s: ", PROGRAM_NAME);
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
@@ -126,7 +128,7 @@ secdb_errx(int status, const char * const fmt, ...)
 	int errnum = errno;
 
 	fflush(stdout);
-	fprintf(stderr, "%s: ", program_invocation_short_name);
+	fprintf(stderr, "%s: ", PROGRAM_NAME);
 	va_start(ap, fmt);
 	errno = errnum;
 	vfprintf(stderr, fmt, ap);
@@ -149,7 +151,7 @@ usage(int status)
 		"  -t, --type=<hash-type>    hash type to add (\"help\" lists options)\n"
 		"  -c, --certificate=<file>  certificate file to add\n"
 		"  -L, --list-guids          list well known guids\n",
-		program_invocation_short_name);
+		PROGRAM_NAME);
 	exit(status);
 }
 

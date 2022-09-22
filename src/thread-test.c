@@ -20,6 +20,8 @@
 
 #define LOOP_COUNT 100
 
+#define PROGRAM_NAME "thread-test"
+
 static int verbosity = 0;
 
 // returns: the number of threads created
@@ -124,7 +126,7 @@ usage(int ret)
 		"Help options:\n"
 		"  -?, --help                        Show this help message\n"
 		"      --usage                       Display brief usage message\n",
-		program_invocation_short_name);
+		PROGRAM_NAME);
 	exit(ret);
 }
 
