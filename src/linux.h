@@ -15,6 +15,11 @@
 #include "include/efivar/efivar-types.h"
 #include "compiler.h"
 
+#ifdef __OpenBSD__
+#include <sys/disklabel.h>
+#include <sys/dkio.h>
+#endif
+
 struct acpi_root_info {
 	uint32_t acpi_hid;
 	uint64_t acpi_uid;
@@ -160,6 +165,8 @@ extern int HIDDEN parse_acpi_hid_uid(struct device *dev, const char *fmt, ...);
 extern int HIDDEN eb_nvme_ns_id(int fd, uint32_t *ns_id);
 
 int HIDDEN get_sector_size(int filedes);
+extern uint64_t HIDDEN get_disk_size_in_sectors(int filedes);
+extern uint64_t HIDDEN get_disk_size_in_bytes(int filedes);
 
 extern int HIDDEN find_parent_devpath(const char * const child,
 				      char **parent);

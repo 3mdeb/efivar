@@ -28,6 +28,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sys/diskslice.h>
+#endif
+
 #include "efiboot.h"
 
 int HIDDEN
@@ -705,12 +709,109 @@ err:
 int UNUSED
 get_sector_size(int filedes)
 {
+#ifdef __OpenBSD__
+	struct disklabel dl;
+	if (ioctl(filedes, DIOCGPDINFO, &dl) == -1)
+		return 512;
+
+	return dl.d_secsize;
+#elif defined(__NetBSD__)
+	u_int sector_size;
+	if (ioctl(filedes, DIOCGSECTORSIZE, &sector_size) == -1)
+		return 0;
+
+	return sector_size;
+#elif defined(__linux__)
 	int rc, sector_size = 512;
 
 	rc = ioctl(filedes, BLKSSZGET, &sector_size);
 	if (rc)
 	        sector_size = 512;
 	return sector_size;
+#elif defined(__DragonFly__) || defined(__FreeBSD__)
+	struct partinfo partinfo;
+	if (ioctl(filedes, DIOCGPART, &partinfo) == -1)
+		return 0;
+
+	return partinfo.media_blksize;
+#else
+#error "No implementation for the platform"
+#endif
+}
+
+uint64_t HIDDEN
+get_disk_size_in_sectors(int filedes)
+{
+	uint64_t size;
+
+#ifdef __OpenBSD__
+	struct disklabel dl;
+	if (ioctl(filedes, DIOCGPDINFO, &dl) == -1)
+		return 0;
+
+	size = dl.d_secperunith;
+	size <<= 32;
+	size += dl.d_secperunit;
+#elif defined(__NetBSD__)
+	struct disklabel dl;
+	if (ioctl(filedes, DIOCGDINFO, &dl) == -1)
+		return 0;
+
+	size = dl.d_secperunit;
+#elif defined(__linux__)
+	long disk_size = 0;
+
+	if (ioctl(filedes, BLKGETSIZE, &disk_size) < 0)
+		return 0;
+
+	size = disk_size;
+#elif defined(__DragonFly__) || defined(__FreeBSD__)
+	struct partinfo partinfo;
+	if (ioctl(filedes, DIOCGPART, &partinfo) == -1)
+		return 0;
+
+	size = partinfo.media_blocks;
+#else
+#error "No implementation for the platform"
+#endif
+
+	return size;
+}
+
+uint64_t HIDDEN
+get_disk_size_in_bytes(int filedes)
+{
+	uint64_t size;
+
+#ifdef __OpenBSD__
+	struct disklabel dl;
+	if (ioctl(filedes, DIOCGPDINFO, &dl) == -1)
+		return 0;
+
+	size = dl.d_secperunith;
+	size <<= 32;
+	size += dl.d_secperunit;
+
+	size *= dl.d_secsize;
+#elif defined(__NetBSD__)
+	off_t disk_size;
+	if (ioctl(filedes, DIOCGMEDIASIZE, &disk_size) == -1)
+		return 0;
+	size = disk_size;
+#elif defined(__linux__)
+	if (ioctl(filedes, BLKGETSIZE64, &size) < 0)
+		return 0;
+#elif defined(__DragonFly__) || defined(__FreeBSD__)
+	struct partinfo partinfo;
+	if (ioctl(filedes, DIOCGPART, &partinfo) == -1)
+		return 0;
+
+	size = partinfo.media_size;
+#else
+#error "No implementation for the platform"
+#endif
+
+	return size;
 }
 
 // vim:fenc=utf-8:tw=75:noet
