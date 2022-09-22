@@ -416,7 +416,7 @@ prepare_data(const char *filename, uint8_t **data, size_t *data_size)
 		goto err;
 
 	buflen = statbuf.st_size;
-	buf = mmap(NULL, buflen, PROT_READ, MAP_PRIVATE|MAP_POPULATE, fd, 0);
+	buf = mmap(NULL, buflen, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (buf == MAP_FAILED)
 		goto err;
 
