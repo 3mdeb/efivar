@@ -42,6 +42,8 @@ extern int optind, opterr, optopt;
 #define SHOW_VERBOSE	0
 #define SHOW_DECIMAL	1
 
+#define PROGRAM_NAME "efisecdb"
+
 static const char *attribute_names[] = {
 	"Non-Volatile",
 	"Boot Service Access",
@@ -453,7 +455,7 @@ usage(int ret)
 		"Help options:\n"
 		"  -?, --help                        Show this help message\n"
 		"      --usage                       Display brief usage message\n",
-		program_invocation_short_name);
+		PROGRAM_NAME);
 	exit(ret);
 }
 
