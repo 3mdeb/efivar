@@ -9,7 +9,7 @@ LD_DASH_T := $(shell \
 	if [ "x${LD_FLAVOR}" = xLLD ] ; then \
 		echo '-T' ; \
 	elif [ "x${LD_FLAVOR}" = xGNU ] ; then \
-		if echo "${LD_VERSION}" | grep -q -E '^2\.3[6789]|^2\.[456789]|^[3456789]|^[[:digit:]][[:digit:]]' ; then \
+		if echo "${LD_VERSION}" | grep -q -E '^2\.3[46789]|^2\.[456789]|^[3456789]|^[[:digit:]][[:digit:]]' ; then \
 			echo '-T' ; \
 		else \
 			echo "" ; \
