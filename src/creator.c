@@ -6,6 +6,7 @@
 
 #include "fix_coverity.h"
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -16,6 +17,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+
+#ifdef __NetBSD__
+#include <sys/disk.h>
+#include <sys/disklabel.h>
+#endif
 
 #include "efiboot.h"
 #include "mntent_compat.h"
@@ -340,6 +346,7 @@ efi_generate_file_device_path_from_esp(uint8_t *buf, ssize_t size,
 static int
 get_part(char *devpath)
 {
+#ifdef __linux__
 	int fd;
 	int partition = -1;
 	struct device *dev = NULL;
@@ -365,6 +372,167 @@ err:
 	if (fd >= 0)
 		close(fd);
 	return partition;
+#elif defined(__NetBSD__)
+	int fd;
+	uint16_t i;
+	int partition;
+	char *parent_devpath;
+	struct disklabel dl;
+	struct dkwedge_info dkw;
+
+	/* Handle wedges. */
+	if (strncmp(devpath, "/dev/rdk", 8) != 0) {
+		efi_error("slice devices aren't supported: %s", devpath);
+		return -1;
+	}
+
+	fd = open(devpath, O_RDONLY);
+	if (fd < 0) {
+		efi_error("could not open device: %s", devpath);
+		return -1;
+	}
+
+	if (ioctl(fd, DIOCGWEDGEINFO, &dkw) == -1) {
+		close(fd);
+		efi_error("could not query wedge's info");
+		return -1;
+	}
+
+	close(fd);
+
+	if (asprintfa(&parent_devpath, "/dev/r%s", dkw.dkw_parent) < 0) {
+		efi_error("could not allocate buffer");
+		return -1;
+	}
+
+	fd = open(parent_devpath, O_RDONLY);
+
+	if (fd < 0) {
+		efi_error("could not open device: %s", parent_devpath);
+		return -1;
+	}
+
+	if (ioctl(fd, DIOCGDINFO, &dl) == -1) {
+		close(fd);
+		efi_error("could not obtain disklabel info");
+		return -1;
+	}
+
+	for (i = 0; i < dl.d_npartitions; ++i) {
+		if (dl.d_partitions[i].p_offset == dkw.dkw_offset) {
+			close(fd);
+			return 1 + i;
+		}
+	}
+
+	partition = gpt_disk_find_partition_num(fd, dkw.dkw_offset, dl.d_secsize);
+	close(fd);
+
+	if (partition < 0) {
+		efi_error("could not find partition number");
+		return -1;
+	}
+
+	return partition;
+#elif defined(__OpenBSD__)
+	int n;
+	int part_num;
+	int partition;
+	int fd;
+	char *parent_devpath;
+	struct disklabel dl;
+	unsigned long long start;
+
+	n = strcspn(devpath, "0123456789");
+	if (!isdigit(devpath[n])) {
+		efi_error("could not find number in device name: %s", devpath);
+		return -1;
+	}
+
+	n += strspn(devpath + n, "0123456789");
+	if (devpath[n] == '\0') {
+		efi_error("device doesn't specify a partition: %s", devpath);
+		return -1;
+	}
+
+	if (find_parent_devpath(devpath, &parent_devpath) < 0) {
+		efi_error("could not find parent of device: %s", devpath);
+		return -1;
+	}
+
+	fd = open(parent_devpath, O_RDONLY);
+	free(parent_devpath);
+
+	if (fd < 0) {
+		efi_error("could not open parent device: %s", parent_devpath);
+		return -1;
+	}
+
+	if (ioctl(fd, DIOCGPDINFO, &dl) == -1) {
+		close(fd);
+		efi_error("could not obtain disklabel info");
+		return -1;
+	}
+
+	part_num = devpath[n] - 'a';
+
+	if (part_num >= dl.d_npartitions) {
+		close(fd);
+		efi_error("can't determine partition number of: %s", devpath);
+		return -1;
+	}
+
+	/* Partition info might be missing even for existing partitions... */
+	if (dl.d_partitions[part_num].p_fstype == FS_UNUSED) {
+		close(fd);
+		efi_error("can't determine partition number of: %s", devpath);
+		return -1;
+	}
+
+	start = dl.d_partitions[part_num].p_offseth;
+	start <<= 32;
+	start += dl.d_partitions[part_num].p_offset;
+
+	partition = gpt_disk_find_partition_num(fd, start, dl.d_secsize);
+	close(fd);
+
+	if (partition < 0) {
+		efi_error("could not find partition number");
+		return -1;
+	}
+
+	return partition;
+#elif defined(__FreeBSD__)
+	/* TODO: figure out if 's' is possible here. */
+	char *s = strrchr(devpath, 'p');
+	if (s == NULL) {
+		efi_error("could not find p in device name: %s", devpath);
+		return -1;
+	}
+
+	if (!isdigit(s[1])) {
+		efi_error("could not find slice number in device name: %s", devpath);
+		return -1;
+	}
+
+	return 1 + atoi(s + 1);
+#elif defined(__DragonFly__)
+	/* TODO: figure out if 'p' is possible here. */
+	char *s = strrchr(devpath, 's');
+	if (s == NULL) {
+		efi_error("could not find s in device name: %s", devpath);
+		return -1;
+	}
+
+	if (!isdigit(s[1])) {
+		efi_error("could not find slice number in device name: %s", devpath);
+		return -1;
+	}
+
+	return 1 + atoi(s + 1);
+#else
+#error "No implementation for the platform"
+#endif
 }
 
 ssize_t NONNULL(3) PUBLIC
