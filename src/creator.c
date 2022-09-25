@@ -74,22 +74,32 @@ find_file(const char * const filepath, char **devicep, char **relpathp)
 
 	struct mntent *me;
 	while (1) {
+		char *devpath;
 		struct stat dsb = { 0, };
 
 		errno = 0;
 		me = getmntent(mounts);
 		if (!me) {
+#ifdef __linux__
 			if (feof(mounts)) {
+#else
+			{
+#endif
 				errno = ENOENT;
 				efi_error("could not find mountpoint");
 			}
 			goto err;
 		}
 
-		if (me->mnt_fsname[0] != '/')
-			continue;
+		devpath = me->mnt_fsname;
+		if (devpath[0] != '/') {
+			if (asprintfa(&devpath, "/dev/%s", me->mnt_fsname) < 0) {
+				efi_error("could not allocate buffer");
+				return -1;
+			}
+		}
 
-		rc = stat(me->mnt_fsname, &dsb);
+		rc = stat(devpath, &dsb);
 		if (rc < 0) {
 			if (errno == ENOENT)
 				continue;
@@ -97,8 +107,10 @@ find_file(const char * const filepath, char **devicep, char **relpathp)
 			goto err;
 		}
 
+#if !defined(__FreeBSD__) && !defined(__DragonFly__)
 		if (!S_ISBLK(dsb.st_mode))
 			continue;
+#endif
 
 		if (dsb.st_rdev == fsb.st_dev) {
 			ssize_t mntlen = strlen(me->mnt_dir);
@@ -106,7 +118,22 @@ find_file(const char * const filepath, char **devicep, char **relpathp)
 				continue;
 			if (strncmp(linkbuf, me->mnt_dir, mntlen))
 				continue;
-			*devicep = strdup(me->mnt_fsname);
+
+#ifdef __NetBSD__
+			/*
+			 * Use "raw" versions of devices because they shouldn't be kept
+			 * busy by drivers.
+			 */
+			if (strncmp(devpath, "/dev/dk", 7) == 0) {
+				if (asprintf(devicep, "/dev/r%s", devpath + 5) < 0)
+					*devicep = NULL;
+			} else {
+				*devicep = strdup(devpath);
+			}
+#else
+			*devicep = strdup(devpath);
+#endif
+
 			if (!*devicep) {
 				errno = ENOMEM;
 				efi_error("strdup failed");
