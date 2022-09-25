@@ -31,15 +31,43 @@
 #include <sys/sysmacros.h>
 #endif
 
+#ifdef __NetBSD__
+#include <sys/disk.h>
+#include <sys/disklabel.h>
+#endif
+
 #if defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/diskslice.h>
 #endif
 
 #include "efiboot.h"
 
+#if defined(__OpenBSD__) || defined(__NetBSD__)
+
+#include <sys/param.h>
+#include <sys/sysctl.h>
+
+static char
+get_raw_partition(void)
+{
+	int rawpart, mib[2];
+	size_t varlen;
+
+	mib[0] = CTL_KERN;
+	mib[1] = KERN_RAWPARTITION;
+	varlen = sizeof(rawpart);
+	if (sysctl(mib, 2, &rawpart, &varlen, NULL, (size_t)0) < 0)
+		return '\0';
+
+	return 'a' + rawpart;
+}
+
+#endif
+
 int HIDDEN
 find_parent_devpath(const char * const child, char **parent)
 {
+#ifdef __linux__
 	int ret;
 	char *node;
 	char *linkbuf;
@@ -74,6 +102,77 @@ find_parent_devpath(const char * const child, char **parent)
 	        return ret;
 
 	return 0;
+#elif defined(__OpenBSD__) || defined(__NetBSD__)
+	int n;
+
+#ifdef __NetBSD__
+	/* Handle wedges. */
+	if (strncmp(child, "/dev/rdk", 8) == 0) {
+		int fd;
+		struct dkwedge_info dkw;
+
+		fd = open(child, O_RDONLY);
+		if (fd < 0) {
+			efi_error("could not open device: %s", child);
+			return -1;
+		}
+
+		if (ioctl(fd, DIOCGWEDGEINFO, &dkw) == -1) {
+			close(fd);
+			efi_error("could not query wedge's info");
+			return -1;
+		}
+
+		close(fd);
+
+		if (asprintf(parent, "/dev/r%s", dkw.dkw_parent) < 0)
+			return -1;
+
+		return 0;
+	}
+#endif
+
+	/* Skip until first digit. */
+	n = strcspn(child, "0123456789");
+	if (child[n] == '\0')
+		return -1;
+
+	/* Skip until first non-digit. */
+	n += strspn(child + n, "0123456789");
+
+	/* We can only handle partitions. */
+	if (!isalpha(child[n]))
+		return -1;
+
+	/*
+	 * This handles names like sd0i -> sd0c.
+	 *
+	 * sd0c is also translated into sd0c.
+	 *
+	 * "c" above means "raw partition" (whole disk).
+	 */
+	if (asprintf(parent, "%.*s%c", n, child, get_raw_partition()) < 0)
+		return -1;
+
+	return 0;
+#else
+	int n;
+
+	/* Skip until first digit. */
+	n = strcspn(child, "0123456789");
+	if (child[n] == '\0')
+		return -1;
+
+	/* Skip until first non-digit. */
+	n += strspn(child + n, "0123456789");
+
+	/* This handles names like vbd0s1, nvd0p1, da0p1. */
+	*parent = strndup(child, n);
+	if (*parent == NULL)
+		return -1;
+
+	return 0;
+#endif
 }
 
 int HIDDEN
@@ -163,6 +262,7 @@ set_disk_name(struct device *dev, const char * const fmt, ...)
 int HIDDEN
 set_disk_and_part_name(struct device *dev)
 {
+#ifdef __linux__
 	int rc = -1;
 	char *ultimate = pathseg(dev->link, -1);
 	char *penultimate = pathseg(dev->link, -2);
@@ -261,9 +361,106 @@ set_disk_and_part_name(struct device *dev)
 	if (rc < 0)
 		efi_error("Could not parse disk name:\"%s\"", dev->link);
 	return rc;
+#elif defined(__NetBSD__)
+	/*
+	 * TODO: this only handles device objects constructed from part devpath.
+	 */
+	int wedges = (strncmp(dev->link, "/dev/rdk", 8) == 0);
+
+	if (wedges) {
+		int fd;
+		struct dkwedge_info dkw;
+
+		fd = open(dev->link, O_RDONLY);
+		if (fd < 0) {
+			efi_error("could not open device: %s", dev->link);
+			return -1;
+		}
+
+		if (ioctl(fd, DIOCGWEDGEINFO, &dkw) == -1) {
+			close(fd);
+			efi_error("could not query wedge's info");
+			return -1;
+		}
+
+		close(fd);
+
+		set_disk_name(dev, "r%s", dkw.dkw_parent);
+	} else {
+		const char *node = strrchr(dev->link, '/');
+		if (!node) {
+			errno = EINVAL;
+			return -1;
+		}
+		node++;
+		set_disk_name(dev, "%s", node);
+	}
+
+	if (dev->part == -1) {
+		set_part_name(dev, "%s", dev->disk_name);
+		return 0;
+	}
+
+	/*
+	 * TODO: need to get part dev from disk dev and part num.
+	 *
+	 * Likely need to determine partition offset by parsing GPT, then parse
+	 * sysctl("hw.disknames") for names of partition devices and query their
+	 * offsets until a match is found.
+	 */
+	set_part_name(dev, "%s", dev->link);
+	return 0;
+#else
+	/*
+	 * TODO: this only handles device objects constructed from part devpath.
+	 */
+
+# if defined(__FreeBSD__)
+	char separator = 's';
+# elif defined(__DragonFly__)
+	char separator = 'p';
+# endif
+
+	const char *node = strrchr(dev->link, '/');
+	if (node == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
+	node++;
+	set_disk_name(dev, "%s", node);
+
+	if (dev->part == -1) {
+		set_part_name(dev, "%s", dev->disk_name);
+		return 0;
+	}
+
+# if defined(__FreeBSD__) || defined(__DragonFly__)
+	/* Handle e.g. vbd0s1, nvd0p1, da0p1. */
+	set_part_name(dev, "%s%c%d", dev->disk_name, separator, dev->part);
+# elif defined(__OpenBSD__)
+	/*
+	 * TODO: need to get part dev from disk dev and part num.
+	 *
+	 * Likely need to determine partition offset by parsing GPT, then do
+	 * ioctl(DIOCGPDINFO) on disk device and loop over d_partitions looking
+	 * for a matching offset.
+	 */
+	if (dev->part != 1) {
+		set_part_name(dev, "%s", dev->link);
+		return 0;
+	}
+
+	set_part_name(dev, "%s%di", dev->disk_name, dev->part);
+	return 0;
+# else
+#  error "No implementation for the platform"
+# endif
+
+#endif
 }
 
 static struct dev_probe *dev_probes[] = {
+#ifdef __linux__
 	/*
 	 * pmem needs to be before PCI, so if it provides root it'll
 	 * be found first.
@@ -282,6 +479,7 @@ static struct dev_probe *dev_probes[] = {
 	&scsi_parser,
 	&i2o_parser,
 	&emmc_parser,
+#endif
 	NULL
 };
 
@@ -373,7 +571,7 @@ print_dev_dp_node(struct device *dev, struct dev_probe *probe)
 }
 
 struct device HIDDEN
-*device_get(int fd, int partition)
+*device_get(const char *devpath, int fd, int partition)
 {
 	struct device *dev;
 	char *linkbuf = NULL, *tmpbuf = NULL;
@@ -408,7 +606,7 @@ struct device HIDDEN
 	dev->pci_root.pci_domain = 0xffff;
 	dev->pci_root.pci_bus = 0xff;
 
-	if (S_ISBLK(dev->stat.st_mode)) {
+	if (S_ISBLK(dev->stat.st_mode) || S_ISCHR(dev->stat.st_mode)) {
 	        dev->major = major(dev->stat.st_rdev);
 	        dev->minor = minor(dev->stat.st_rdev);
 	} else if (S_ISREG(dev->stat.st_mode)) {
@@ -418,6 +616,9 @@ struct device HIDDEN
 	        efi_error("device is not a block device or regular file");
 	        goto err;
 	}
+
+#ifdef __linux__
+	(void)devpath;
 
 	rc = sysfs_readlink(&linkbuf, "dev/block/%"PRIu64":%"PRIu32,
 	                    dev->major, dev->minor);
@@ -433,6 +634,11 @@ struct device HIDDEN
 	        goto err;
 	}
 	debug("dev->link: %s", dev->link);
+#else
+	dev->link = strdup(devpath);
+	/* There are no probes, supporting abbreviated paths only. */
+	dev->flags |= DEV_ABBREV_ONLY;
+#endif
 
 	if (dev->part == -1) {
 	        rc = read_sysfs_file(&tmpbuf, "dev/block/%s/partition", dev->link);

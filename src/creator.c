@@ -209,7 +209,7 @@ efi_va_generate_file_device_path_from_esp(uint8_t *buf, ssize_t size,
 		goto err;
 	}
 
-	dev = device_get(fd, partition);
+	dev = device_get(devpath, fd, partition);
 	if (dev == NULL) {
 		efi_error("could not get ESP disk info");
 		goto err;
@@ -384,7 +384,7 @@ get_part(char *devpath)
 		goto err;
 	}
 
-	dev = device_get(fd, -1);
+	dev = device_get(devpath, fd, -1);
 	if (dev == NULL) {
 		efi_error("could not get ESP disk info");
 		goto err;
