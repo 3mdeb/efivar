@@ -653,6 +653,35 @@ gpt_disk_get_partition_info(int fd, uint32_t num, uint64_t * start,
 	return rc;
 }
 
+int HIDDEN
+gpt_disk_find_partition_num(int fd, uint64_t start, int logical_block_size)
+{
+	gpt_header *gpt = NULL;
+	gpt_entry *ptes = NULL;
+	int rc = 0;
+	unsigned int i = 0;
+
+	rc = find_valid_gpt(fd, &gpt, &ptes, /*ignore_pmbr_error=*/0,
+			    logical_block_size);
+	if (rc < 0)
+		return rc;
+
+	rc = -1;
+	for (i = 0; i < le32_to_cpu(gpt->num_partition_entries); ++i) {
+		if (le64_to_cpu(ptes[i].starting_lba) == start) {
+			rc = i + 1;
+			break;
+		}
+	}
+
+	free(ptes);
+	free(gpt);
+
+	if (rc < 0)
+		errno = ENOENT;
+	return rc;
+}
+
 /*
  * Overrides for Emacs so that we follow Linus's tabbing style.
  * Emacs will notice this stuff at the end of the file and automatically
