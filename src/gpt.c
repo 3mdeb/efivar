@@ -23,6 +23,7 @@
 #include <unistd.h>
 
 #include "efivar.h"
+#include "linux.h"
 
 #ifndef BLKGETLASTSECT
 #define BLKGETLASTSECT _IO(0x12,108) /* get last sector of block device */
@@ -60,68 +61,6 @@ is_pmbr_valid(legacy_mbr *mbr)
 	return (magic && found);
 }
 
-/**
- * kernel_has_blkgetsize64()
- *
- * Returns: 0 on false, 1 on true
- * True means kernel is 2.4.x, x>=18, or
- *		   is 2.5.x, x>4, or
- *		   is > 2.5
- */
-static int
-kernel_has_blkgetsize64(void)
-{
-	int major=0, minor=0, patch=0, parsed;
-	int rc;
-	struct utsname u;
-
-	memset(&u, 0, sizeof(u));
-	rc = uname(&u);
-	if (rc)
-		return 0;
-
-	parsed = sscanf(u.release, "%d.%d.%d", &major, &minor, &patch);
-	/* If the kernel is 2.4.15-2.4.18 and 2.5.0-2.5.3, i.e. the problem
-	 * kernels, then this will get 3 answers.  If it doesn't, it isn't. */
-	if (parsed != 3)
-		return 1;
-
-	if (major == 2 && minor == 5 && patch < 4)
-		return 0;
-	if (major == 2 && minor == 4 && patch >= 15 && patch <= 18)
-		return 0;
-	return 1;
-}
-
-/************************************************************
- * _get_num_sectors
- * Requires:
- *  - filedes is an open file descriptor, suitable for reading
- * Modifies: nothing
- * Returns:
- *  Last LBA value on success
- *  0 on error
- *
- * Try getting BLKGETSIZE64 and BLKSSZGET first,
- * then BLKGETSIZE if necessary.
- *  Kernels 2.4.15-2.4.18 and 2.5.0-2.5.3 have a broken BLKGETSIZE64
- *  which returns the number of 512-byte sectors, not the size of
- *  the disk in bytes. Fixed in kernels 2.4.18-pre8 and 2.5.4-pre3.
- ************************************************************/
-static uint64_t
-_get_num_sectors(int filedes)
-{
-	uint64_t bytes=0;
-	int rc;
-	if (kernel_has_blkgetsize64()) {
-		rc = get_disk_size_in_bytes(filedes);
-		if (!rc)
-			return bytes / get_sector_size(filedes);
-	}
-
-	return get_disk_size_in_sectors(filedes);
-}
-
 /************************************************************
  * last_lba(): return number of last logical block of device
  *
@@ -135,22 +74,10 @@ _get_num_sectors(int filedes)
 static uint64_t
 last_lba(int filedes)
 {
-	int rc;
-	uint64_t sectors = 0;
-	struct stat s;
-	memset(&s, 0, sizeof (s));
-	rc = fstat(filedes, &s);
-	if (rc == -1) {
-		efi_error("last_lba() could not stat: %s", strerror(errno));
+	uint64_t sectors = get_disk_size_in_sectors(filedes);
+	if (sectors == 0) {
+		efi_error("last_lba() failed to get device size in sectors");
 		return 0;
-	}
-
-	if (S_ISBLK(s.st_mode)) {
-		sectors = _get_num_sectors(filedes);
-	} else {
-		efi_error("last_lba(): I don't know how to handle files with mode %x",
-			  s.st_mode);
-		sectors = 1;
 	}
 
 	return sectors - 1;
