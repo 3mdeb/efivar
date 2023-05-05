@@ -42,7 +42,7 @@ extern int optind, opterr, optopt;
 #define SHOW_VERBOSE	0
 #define SHOW_DECIMAL	1
 
-#define PROGRAM_NAME "efisecdb"
+#define PROGRAM_NAME "efivar"
 
 static const char *attribute_names[] = {
 	"Non-Volatile",
