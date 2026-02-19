@@ -38,7 +38,9 @@
 #endif
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sys/disk.h>
 #include <sys/diskslice.h>
+#include <net/if_dl.h>
 #endif
 
 #include "efiboot.h"
@@ -844,10 +846,10 @@ make_blockdev_path(uint8_t *buf, ssize_t size, struct device *dev)
 	return off;
 }
 
+#if defined(__linux__)
 ssize_t HIDDEN
 make_mac_path(uint8_t *buf, ssize_t size, const char * const ifname)
 {
-#ifdef __linux__
 	struct ifreq ifr;
 	struct ethtool_drvinfo drvinfo = { 0, };
 	int fd = -1, rc;
@@ -907,14 +909,58 @@ err:
 	if (fd >= 0)
 	        close(fd);
 	return ret;
+}
+#elif defined(__FreeBSD__)
+ssize_t HIDDEN
+make_mac_path(uint8_t *buf, ssize_t size, const char * const ifname)
+{
+	int fd;
+	struct ifreq ifr;
+	struct sockaddr_dl *sdl;
+	ssize_t ret = -1;
+
+	if (!buf || !ifname)
+		return -1;
+
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd < 0)
+		return -1;
+
+	memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, ifname, IFNAMSIZ-1);
+	ifr.ifr_name[IFNAMSIZ-1] = '\0';
+
+	if (ioctl(fd, SIOCGIFADDR, &ifr) < 0) {
+		close(fd);
+		return -1;
+	}
+
+	// For MAC, use AF_LINK (sockaddr_dl)
+	if (ioctl(fd, SIOCGIFCONF, &ifr) < 0) {
+		close(fd);
+		return -1;
+	}
+
+	sdl = (struct sockaddr_dl *)&ifr.ifr_addr;
+	if (sdl->sdl_alen > 0 && sdl->sdl_alen <= size) {
+		memcpy(buf, LLADDR(sdl), sdl->sdl_alen);
+		ret = sdl->sdl_alen;
+	}
+
+	close(fd);
+	return ret;
+}
 #else
+ssize_t HIDDEN
+make_mac_path(uint8_t *buf, ssize_t size, const char * const ifname)
+{
 	(void)buf;
 	(void)size;
 	(void)ifname;
 	efi_error("make_mac_path() is not implemented for this platform");
 	return -1;
-#endif
 }
+#endif
 
 /************************************************************
  * get_sector_size

@@ -43,7 +43,6 @@ override _CFLAGS := $(CFLAGS)
 override CFLAGS = $(_CFLAGS) \
 		  -std=gnu11 \
 		  -funsigned-char \
-		  -fvisibility=hidden \
 		  $(call family,CFLAGS) \
 		  $(call pkg-config-cflags)
 LDFLAGS_CLANG ?=

@@ -20,6 +20,10 @@
 #include <string.h>
 #include <limits.h>
 
+#if defined(__FreeBSD__)
+#  undef LIST_HEAD
+#endif
+
 extern char *optarg;
 extern int optind, opterr, optopt;
 
