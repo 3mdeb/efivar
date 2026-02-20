@@ -28,6 +28,10 @@
 #include <sys/efiio.h>
 #endif
 
+#ifdef __FreeBSD__
+#define efi_guid_t ioctl_efi_guid_t
+#endif
+
 #include "efivar.h"
 #include "ucs2.h"
 
@@ -66,14 +70,14 @@ ioctl_get_variable_size(efi_guid_t guid, const char *name, size_t *size)
 	int errno_value;
 	int ret = -1;
 
-	var.namesize = utf8size(name, -1) * sizeof(efi_char);
+	var.namesize = utf8size((const unsigned char *)name, -1) * sizeof(efi_char);
 	memcpy(&var.vendor, &guid, sizeof(uuid_t));
 
 	var.name = malloc(var.namesize);
 	if (var.name == NULL)
 		return -1;
 
-	if (utf8_to_ucs2(var.name, var.namesize, true, name) == -1)
+	if (utf8_to_ucs2(var.name, var.namesize, true, (const unsigned char *)name) == -1)
 		goto err;
 
 	ret = rv_to_linux_rv(ioctl(efi_fd, EFIIOC_VAR_GET, &var));
@@ -98,14 +102,14 @@ ioctl_get_variable_attributes(efi_guid_t guid, const char *name,
 	int errno_value;
 	int ret = -1;
 
-	var.namesize = utf8size(name, -1) * sizeof(efi_char);
+	var.namesize = utf8size((const unsigned char *)name, -1) * sizeof(efi_char);
 	memcpy(&var.vendor, &guid, sizeof(uuid_t));
 
 	var.name = malloc(var.namesize);
 	if (var.name == NULL)
 		return -1;
 
-	if (utf8_to_ucs2(var.name, var.namesize, true, name) == -1)
+	if (utf8_to_ucs2(var.name, var.namesize, true, (const unsigned char *)name) == -1)
 		goto err;
 
 	ret = rv_to_linux_rv(ioctl(efi_fd, EFIIOC_VAR_GET, &var));
@@ -128,14 +132,14 @@ ioctl_get_variable(efi_guid_t guid, const char *name, uint8_t **data,
 	int errno_value;
 	int ret = -1;
 
-	var.namesize = utf8size(name, -1) * sizeof(efi_char);
+	var.namesize = utf8size((const unsigned char *)name, -1) * sizeof(efi_char);
 	memcpy(&var.vendor, &guid, sizeof(uuid_t));
 
 	var.name = malloc(var.namesize);
 	if (var.name == NULL)
 		return -1;
 
-	if (utf8_to_ucs2(var.name, var.namesize, true, name) == -1)
+	if (utf8_to_ucs2(var.name, var.namesize, true, (const unsigned char *)name) == -1)
 		goto err;
 
 	ret = rv_to_linux_rv(ioctl(efi_fd, EFIIOC_VAR_GET, &var));
@@ -171,14 +175,14 @@ ioctl_del_variable(efi_guid_t guid, const char *name)
 	int errno_value;
 	int ret = -1;
 
-	var.namesize = utf8size(name, -1) * sizeof(efi_char);
+	var.namesize = utf8size((const unsigned char *)name, -1) * sizeof(efi_char);
 	memcpy(&var.vendor, &guid, sizeof(uuid_t));
 
 	var.name = malloc(var.namesize);
 	if (var.name == NULL)
 		return -1;
 
-	if (utf8_to_ucs2(var.name, var.namesize, true, name) == -1)
+	if (utf8_to_ucs2(var.name, var.namesize, true, (const unsigned char *)name) == -1)
 		goto err;
 
 	ret = rv_to_linux_rv(ioctl(efi_fd, EFIIOC_VAR_SET, &var));
@@ -200,24 +204,24 @@ ioctl_chmod_variable(efi_guid_t guid UNUSED, const char *name UNUSED,
 }
 
 static int
-ioctl_set_variable(efi_guid_t guid, const char *name, uint8_t *data,
+ioctl_set_variable(efi_guid_t guid, const char *name, const uint8_t *data,
 		   size_t data_size, uint32_t attributes, mode_t mode UNUSED)
 {
 	struct efi_var_ioc var = { 0 };
 	int errno_value;
 	int ret = -1;
 
-	var.namesize = utf8size(name, -1) * sizeof(efi_char);
+	var.namesize = utf8size((const unsigned char *)name, -1) * sizeof(efi_char);
 	memcpy(&var.vendor, &guid, sizeof(uuid_t));
 	var.attrib = attributes;
-	var.data = data;
+	var.data = (uint8_t *)data;
 	var.datasize = data_size;
 
 	var.name = malloc(var.namesize);
 	if (var.name == NULL)
 		return -1;
 
-	if (utf8_to_ucs2(var.name, var.namesize, true, name) == -1)
+	if (utf8_to_ucs2(var.name, var.namesize, true, (const unsigned char *)name) == -1)
 		goto err;
 
 	ret = rv_to_linux_rv(ioctl(efi_fd, EFIIOC_VAR_SET, &var));
@@ -249,7 +253,7 @@ ioctl_get_next_variable_name(efi_guid_t **guid, char **name)
 	}
 
 	if (*name != NULL) {
-		if (utf8_to_ucs2(tmp_name, sizeof(tmp_name), true, *name) == -1)
+		if (utf8_to_ucs2(tmp_name, sizeof(tmp_name), true, (unsigned char *)*name) == -1)
 			return -1;
 	} else {
 		tmp_name[0] = 0;
@@ -265,7 +269,7 @@ ioctl_get_next_variable_name(efi_guid_t **guid, char **name)
 		return (errno == ENOENT ? 0 : ret);
 	}
 
-	utf8_name = ucs2_to_utf8(var.name, -1);
+	utf8_name = (char *)ucs2_to_utf8(var.name, -1);
 	if (utf8_name == NULL)
 		return -1;
 
