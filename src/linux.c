@@ -37,9 +37,13 @@
 #include <sys/disklabel.h>
 #endif
 
-#if defined(__DragonFly__) || defined(__FreeBSD__)
+#if defined(__DragonFly__)
 #include <sys/disk.h>
 #include <sys/diskslice.h>
+#endif
+
+#if defined(__FreeBSD__)
+#include <sys/disk.h>
 #include <net/if_dl.h>
 #endif
 
@@ -454,11 +458,11 @@ set_disk_and_part_name(struct device *dev)
 	}
 
 	set_part_name(dev, "%s%di", dev->disk_name, dev->part);
-	return 0;
 # else
 #  error "No implementation for the platform"
 # endif
 
+	return 0;
 #endif
 }
 
@@ -994,10 +998,10 @@ get_sector_size(int filedes)
 	if (ioctl(filedes, DIOCGPART, &partinfo) != -1)
 		result = partinfo.media_blksize;
 #elif defined(__FreeBSD__)
-	long sectors;
-	int rc = ioctl(filedes, DIOCGSECTORSIZE, &sectors);
+	unsigned long sector_size;
+	int rc = ioctl(filedes, DIOCGSECTORSIZE, &sector_size);
 	if (rc != -1)
-		result = sectors
+		result = sector_size;
 #else
 #error "No implementation for the platform"
 #endif
