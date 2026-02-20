@@ -973,34 +973,36 @@ make_mac_path(uint8_t *buf, ssize_t size, const char * const ifname)
 int UNUSED
 get_sector_size(int filedes)
 {
+	int result = 512;
+
 #ifdef __OpenBSD__
 	struct disklabel dl;
-	if (ioctl(filedes, DIOCGPDINFO, &dl) == -1)
-		return 512;
-
-	return dl.d_secsize;
+	if (ioctl(filedes, DIOCGPDINFO, &dl) != -1)
+		result = dl.d_secsize;
 #elif defined(__NetBSD__)
 	u_int sector_size;
-	if (ioctl(filedes, DIOCGSECTORSIZE, &sector_size) == -1)
-		return 0;
-
-	return sector_size;
+	if (ioctl(filedes, DIOCGSECTORSIZE, &sector_size) != -1)
+		result = sector_size;
 #elif defined(__linux__)
-	int rc, sector_size = 512;
+	int rc, sector_size;
 
 	rc = ioctl(filedes, BLKSSZGET, &sector_size);
-	if (rc)
-	        sector_size = 512;
-	return sector_size;
-#elif defined(__DragonFly__) || defined(__FreeBSD__)
+	if (!rc)
+		result = sector_size;
+#elif defined(__DragonFly__)
 	struct partinfo partinfo;
-	if (ioctl(filedes, DIOCGPART, &partinfo) == -1)
-		return 0;
-
-	return partinfo.media_blksize;
+	if (ioctl(filedes, DIOCGPART, &partinfo) != -1)
+		result = partinfo.media_blksize;
+#elif defined(__FreeBSD__)
+	long sectors;
+	int rc = ioctl(filedes, DIOCGSECTORSIZE, &sectors);
+	if (rc != -1)
+		result = sectors
 #else
 #error "No implementation for the platform"
 #endif
+
+	return result;
 }
 
 #ifdef __linux__
@@ -1088,12 +1090,14 @@ get_disk_size_in_sectors(int filedes)
 
 		size = size_in_bytes / get_sector_size(filedes);
 	}
-#elif defined(__DragonFly__) || defined(__FreeBSD__)
+#elif defined(__DragonFly__)
 	struct partinfo partinfo;
 	if (ioctl(filedes, DIOCGPART, &partinfo) == -1)
 		return 0;
 
 	size = partinfo.media_blocks;
+#elif defined(__FreeBSD__)
+	size = get_disk_size_in_bytes(filedes) / get_sector_size(filedes);
 #else
 #error "No implementation for the platform"
 #endif
@@ -1124,12 +1128,19 @@ get_disk_size_in_bytes(int filedes)
 #elif defined(__linux__)
 	if (ioctl(filedes, BLKGETSIZE64, &size) < 0)
 		return 0;
-#elif defined(__DragonFly__) || defined(__FreeBSD__)
+#elif defined(__DragonFly__)
 	struct partinfo partinfo;
 	if (ioctl(filedes, DIOCGPART, &partinfo) == -1)
 		return 0;
 
 	size = partinfo.media_size;
+#elif defined(__FreeBSD__)
+	unsigned long media_size;
+
+	if (ioctl(filedes, DIOCGMEDIASIZE, &media_size) == -1)
+		return 0;
+
+	size = media_size;
 #else
 #error "No implementation for the platform"
 #endif
